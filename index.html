@@ -1,0 +1,471 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Calculadora Inteligente de Oportunidad IA</title>
+    <style>
+        body {
+            font-family: sans-serif;
+            line-height: 1.6;
+            margin: 0;
+            padding: 20px;
+            background-color: #f4f7f6;
+            color: #333;
+        }
+        .container {
+            max-width: 800px;
+            margin: auto;
+            background: #fff;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1, h2, h3 {
+            color: #005a9c;
+        }
+        .question-area, .results-area {
+            margin-bottom: 20px;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            background-color: #f9f9f9;
+        }
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: bold;
+        }
+        input[type="text"], textarea {
+            width: calc(100% - 22px);
+            padding: 10px;
+            margin-bottom: 10px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+        }
+        button {
+            background-color: #007bff;
+            color: white;
+            padding: 10px 15px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        .suggestions {
+            font-size: 0.9em;
+            color: #555;
+            margin-bottom: 10px;
+        }
+        .suggestions span {
+            display: inline-block;
+            background-color: #e0e0e0;
+            padding: 3px 8px;
+            border-radius: 3px;
+            margin-right: 5px;
+            margin-bottom: 5px;
+            cursor: pointer;
+        }
+        .suggestions span:hover {
+            background-color: #c0c0c0;
+        }
+        .score-justification {
+            font-style: italic;
+            color: #28a745;
+            margin-top: 5px;
+            font-size: 0.9em;
+        }
+        .results-area h3 {
+            margin-top: 0;
+        }
+        .sub-index {
+            margin-bottom: 10px;
+        }
+        .sub-index strong {
+            display: inline-block;
+            width: 180px;
+        }
+        #start-section, #question-section, #results-section {
+            display: none; /* Initially hidden */
+        }
+        #progressBarContainer {
+            width: 100%;
+            background-color: #ddd;
+            border-radius: 5px;
+            margin-bottom: 20px;
+        }
+        #progressBar {
+            width: 0%;
+            height: 20px;
+            background-color: #4CAF50;
+            text-align: center;
+            line-height: 20px;
+            color: white;
+            border-radius: 5px;
+            transition: width 0.3s ease-in-out;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Calculadora Inteligente de Oportunidad de IA y Automatización</h1>
+
+        <div id="start-section">
+            <p>¡Hola! Estoy aquí para ayudarte a evaluar la oportunidad de implementar Inteligencia Artificial y automatización en uno de tus procesos de negocio.</p>
+            <label for="process-name">Primero, por favor, describe brevemente el proceso que tienes en mente (ej: "Gestión de facturas de proveedores", "Atención de reclamos de clientes Nivel 1"):</label>
+            <input type="text" id="process-name" placeholder="Nombre o descripción del proceso">
+            <button onclick="startEvaluation()">Comenzar Evaluación</button>
+        </div>
+
+        <div id="question-section">
+            <div id="progressBarContainer">
+                <div id="progressBar">0%</div>
+            </div>
+            <div class="question-area">
+                <h2 id="question-title"></h2>
+                <p id="question-text"></p>
+                <div class="suggestions" id="question-suggestions"></div>
+                <textarea id="user-answer" rows="3" placeholder="Escribe tu respuesta aquí..."></textarea>
+                <button onclick="nextQuestion()">Siguiente Pregunta</button>
+                <div id="current-score-justification" class="score-justification"></div>
+            </div>
+        </div>
+
+        <div id="results-section">
+            <h2>Diagnóstico y Oportunidad de IA para: <span id="evaluated-process-name"></span></h2>
+            
+            <div class="results-area">
+                <h3>Índice Total de Oportunidad de IA: <span id="total-opportunity-index"></span>/100</h3>
+            </div>
+
+            <div class="results-area">
+                <h3>Sub-índices de Oportunidad:</h3>
+                <div id="sub-indices-container">
+                    <!-- Sub-indices will be populated here -->
+                </div>
+            </div>
+
+            <div class="results-area">
+                <h3>Diagnóstico Detallado:</h3>
+                <ul id="diagnosis-list">
+                    <!-- Diagnosis points will be populated here -->
+                </ul>
+            </div>
+            
+            <div class="results-area">
+                <h3>Tecnologías y Agentes Sugeridos:</h3>
+                <p id="technology-suggestion"></p>
+            </div>
+
+            <div class="results-area">
+                <h3>Próximos Pasos Recomendados:</h3>
+                <ul id="next-steps-list">
+                    <!-- Next steps will be populated here -->
+                </ul>
+            </div>
+            <button onclick="restartEvaluation()">Evaluar Otro Proceso</button>
+        </div>
+    </div>
+
+    <script>
+        let currentQuestionIndex = 0;
+        let userScores = {};
+        let processName = "";
+
+        const questions = [
+            {
+                id: "volume_datos",
+                title: "Volumen de Datos",
+                text: "¿Cuántos datos se generan o procesan en este proceso diariamente o mensualmente? (ej: número de transacciones, documentos, emails, registros)",
+                suggestions: ["Bajo (ej: <10/día, <200/mes)", "Medio (ej: 10-100/día, 200-2000/mes)", "Alto (ej: 100-1000/día, 2k-20k/mes)", "Muy Alto (ej: >1000/día, >20k/mes)"],
+                scoringLogic: function(answer) {
+                    answer = answer.toLowerCase();
+                    if (answer.includes("muy alto") || answer.includes(">1000") || answer.includes(">20k")) return { score: 10, justification: "Volumen muy alto, ideal para IA y análisis masivo." };
+                    if (answer.includes("alto") || answer.includes("100-1000") || answer.includes("2k-20k")) return { score: 8, justification: "Volumen alto, buena oportunidad para IA." };
+                    if (answer.includes("medio") || answer.includes("10-100") || answer.includes("200-2000")) return { score: 5, justification: "Volumen medio, IA podría ser útil para tareas específicas." };
+                    if (answer.includes("bajo") || answer.includes("<10") || answer.includes("<200")) return { score: 2, justification: "Volumen bajo, la IA podría no ser prioritaria por sí sola aquí." };
+                    return { score: 4, justification: "Respuesta no clasificada claramente, asumiendo volumen moderado-bajo." }; // Default
+                }
+            },
+            {
+                id: "repetitividad",
+                title: "Repetitividad",
+                text: "¿Qué porcentaje del proceso es rutinario o sigue reglas claras y predefinidas? (ej: 0%, 25%, 50%, 75%, 100%)",
+                suggestions: ["Bajo (<25%, muy variable)", "Medio (25-50%, algunas partes son rutinarias)", "Alto (50-75%, la mayoría es rutinario)", "Muy Alto (>75%, casi todo sigue reglas fijas)"],
+                scoringLogic: function(answer) {
+                    answer = answer.toLowerCase();
+                    if (answer.includes("muy alto") || answer.includes(">75%") || answer.includes("100%")) return { score: 10, justification: "Muy alta repetitividad, ideal para RPA y automatización." };
+                    if (answer.includes("alto") || answer.includes("50-75%")) return { score: 8, justification: "Alta repetitividad, fuerte candidato para automatización." };
+                    if (answer.includes("medio") || answer.includes("25-50%")) return { score: 5, justification: "Repetitividad media, algunas tareas podrían automatizarse." };
+                    if (answer.includes("bajo") || answer.includes("<25%")) return { score: 2, justification: "Baja repetitividad, la automatización directa puede ser compleja." };
+                    return { score: 4, justification: "Respuesta no clasificada claramente, asumiendo repetitividad moderada-baja." };
+                }
+            },
+            {
+                id: "dependencia_humana",
+                title: "Dependencia Humana",
+                text: "¿Cuánto depende el proceso de la intervención humana constante para su ejecución y toma de decisiones?",
+                suggestions: ["Baja (casi automático)", "Media (supervisión y algunas intervenciones)", "Alta (requiere intervención en muchos pasos)", "Total (completamente manual)"],
+                scoringLogic: function(answer) {
+                    answer = answer.toLowerCase();
+                    if (answer.includes("total") || answer.includes("completamente manual")) return { score: 10, justification: "Totalmente dependiente de humanos, gran oportunidad de automatización." };
+                    if (answer.includes("alta")) return { score: 8, justification: "Alta dependencia humana, automatizar liberaría mucho tiempo." };
+                    if (answer.includes("media")) return { score: 5, justification: "Dependencia media, IA podría asistir o automatizar partes." };
+                    if (answer.includes("baja")) return { score: 2, justification: "Baja dependencia humana, ya hay cierta automatización o es simple." };
+                    return { score: 6, justification: "Respuesta no clasificada, asumiendo dependencia media-alta." };
+                }
+            },
+            {
+                id: "errores_comunes",
+                title: "Errores Comunes",
+                text: "¿Con qué frecuencia ocurren errores humanos en este proceso que requieren corrección o causan problemas?",
+                suggestions: ["Rara vez o nunca", "Ocasionalmente (pocos al mes)", "Frecuentemente (varios a la semana)", "Muy frecuentemente (diariamente)"],
+                scoringLogic: function(answer) {
+                    answer = answer.toLowerCase();
+                    if (answer.includes("muy frecuentemente") || answer.includes("diariamente")) return { score: 10, justification: "Errores muy frecuentes, IA puede mejorar calidad y reducir costos." };
+                    if (answer.includes("frecuentemente") || answer.includes("varios a la semana")) return { score: 8, justification: "Errores frecuentes, IA tiene buen potencial para mitigarlos." };
+                    if (answer.includes("ocasionalmente")) return { score: 4, justification: "Errores ocasionales, IA podría ayudar si otros factores son altos." };
+                    if (answer.includes("rara vez")) return { score: 1, justification: "Errores raros, la reducción de errores no es el principal motor para IA aquí." };
+                    return { score: 5, justification: "Respuesta no clasificada, asumiendo frecuencia media de errores." };
+                }
+            },
+            {
+                id: "tiempos_espera",
+                title: "Tiempos de Espera",
+                text: "¿Existen cuellos de botella o demoras frecuentes en este proceso que afectan la entrega o eficiencia?",
+                suggestions: ["No, el proceso fluye bien", "Algunas demoras menores", "Demoras frecuentes y notables", "Cuellos de botella críticos y constantes"],
+                scoringLogic: function(answer) {
+                    answer = answer.toLowerCase();
+                    if (answer.includes("críticos") || answer.includes("constantes")) return { score: 10, justification: "Cuellos de botella críticos, IA puede optimizar flujos y reducir esperas significativamente." };
+                    if (answer.includes("frecuentes") || answer.includes("notables")) return { score: 7, justification: "Demoras frecuentes, IA puede mejorar la velocidad del proceso." };
+                    if (answer.includes("algunas") || answer.includes("menores")) return { score: 4, justification: "Demoras menores, IA podría ofrecer mejoras marginales en velocidad." };
+                    if (answer.includes("no") || answer.includes("fluye bien")) return { score: 1, justification: "Proceso fluido, la optimización de tiempos no es prioritaria para IA." };
+                    return { score: 5, justification: "Respuesta no clasificada, asumiendo demoras moderadas." };
+                }
+            },
+            {
+                id: "trazabilidad_documentacion",
+                title: "Trazabilidad / Documentación",
+                text: "¿Qué tan bien documentado y trazable está el proceso actualmente? (ej: diagramas de flujo, KPIs claros, registros de auditoría)",
+                suggestions: ["Pobre/Inexistente", "Básica (algunas notas o conocimiento tribal)", "Buena (documentado, pero podría mejorar)", "Excelente (totalmente documentado y trazable)"],
+                scoringLogic: function(answer) { // Higher score if POOR, because IA can help document/trace
+                    answer = answer.toLowerCase();
+                    if (answer.includes("pobre") || answer.includes("inexistente")) return { score: 8, justification: "Documentación pobre, IA puede ayudar a generar registros y mejorar trazabilidad. Sin embargo, la falta de documentación clara puede dificultar la implementación inicial." };
+                    if (answer.includes("básica")) return { score: 6, justification: "Documentación básica, IA puede ayudar a estandarizar y mejorar." };
+                    if (answer.includes("buena")) return { score: 3, justification: "Buena documentación, facilita la implementación de IA." };
+                    if (answer.includes("excelente")) return { score: 1, justification: "Excelente documentación, base sólida para cualquier mejora, incluyendo IA." };
+                    return { score: 5, justification: "Respuesta no clasificada, asumiendo documentación regular." };
+                }
+            },
+            {
+                id: "impacto_proceso",
+                title: "Impacto del Proceso",
+                text: "¿Qué tan crítico es este proceso para los objetivos clave del negocio, la satisfacción del cliente o los resultados financieros?",
+                suggestions: ["Bajo impacto", "Impacto moderado", "Alto impacto", "Crítico para el negocio"],
+                scoringLogic: function(answer) {
+                    answer = answer.toLowerCase();
+                    if (answer.includes("crítico")) return { score: 10, justification: "Proceso crítico, mejoras con IA tendrían un gran impacto positivo." };
+                    if (answer.includes("alto impacto")) return { score: 8, justification: "Alto impacto, IA puede generar beneficios significativos." };
+                    if (answer.includes("moderado")) return { score: 5, justification: "Impacto moderado, IA podría ser valiosa si otros factores lo apoyan." };
+                    if (answer.includes("bajo impacto")) return { score: 2, justification: "Bajo impacto, la inversión en IA aquí podría no ser la más estratégica." };
+                    return { score: 6, justification: "Respuesta no clasificada, asumiendo impacto medio-alto." };
+                }
+            },
+            {
+                id: "conectividad_tecnologica",
+                title: "Conectividad Tecnológica",
+                text: "¿Qué herramientas digitales se utilizan actualmente en este proceso? (ej: ERP, CRM, software especializado, planillas Excel, emails, nada/papel)",
+                suggestions: ["Nada/Papel (totalmente manual)", "Planillas Excel y Email", "Algunas herramientas digitales aisladas", "Sistemas integrados (ERP, CRM, etc.)"],
+                scoringLogic: function(answer) { // Higher score for less tech, as IA can bridge gaps
+                    answer = answer.toLowerCase();
+                    if (answer.includes("nada") || answer.includes("papel") || answer.includes("manual")) return { score: 9, justification: "Proceso manual, alta oportunidad para digitalización y automatización básica con IA." };
+                    if (answer.includes("planillas") || answer.includes("excel") || answer.includes("email")) return { score: 7, justification: "Basado en herramientas ofimáticas, RPA e IA pueden integrarlas y automatizarlas." };
+                    if (answer.includes("aisladas") || answer.includes("algunas herramientas")) return { score: 4, justification: "Herramientas aisladas, IA podría ayudar a conectar o mejorar su uso." };
+                    if (answer.includes("integrados") || answer.includes("erp") || answer.includes("crm")) return { score: 2, justification: "Sistemas integrados, IA podría complementar o añadir inteligencia avanzada." };
+                    return { score: 5, justification: "Respuesta no clasificada, asumiendo un mix tecnológico." };
+                }
+            },
+            {
+                id: "interaccion_clientes",
+                title: "Interacción con Clientes/Usuarios",
+                text: "¿El proceso involucra interacción directa y frecuente con clientes o usuarios? (ej: atención de consultas, soporte, procesamiento de reclamos, emails, chats)",
+                suggestions: ["Ninguna o muy poca", "Baja (ej: emails esporádicos)", "Media (ej: consultas regulares por email/teléfono)", "Alta (ej: atención constante, chats en vivo, reclamos frecuentes)"],
+                scoringLogic: function(answer) {
+                    answer = answer.toLowerCase();
+                    if (answer.includes("alta") || answer.includes("constante") || answer.includes("chats en vivo") || answer.includes("reclamos frecuentes")) return { score: 9, justification: "Alta interacción, gran potencial para chatbots, IA generativa para respuestas y análisis de sentimiento." };
+                    if (answer.includes("media") || answer.includes("consultas regulares")) return { score: 6, justification: "Interacción media, IA puede ayudar a gestionar comunicaciones y priorizar." };
+                    if (answer.includes("baja") || answer.includes("esporádicos")) return { score: 3, justification: "Interacción baja, el impacto de IA conversacional sería menor." };
+                    if (answer.includes("ninguna") || answer.includes("muy poca")) return { score: 1, justification: "Poca o nula interacción, este no es un driver para IA conversacional." };
+                    return { score: 4, justification: "Respuesta no clasificada, asumiendo interacción moderada-baja." };
+                }
+            }
+        ];
+
+        document.addEventListener('DOMContentLoaded', () => {
+            document.getElementById('start-section').style.display = 'block';
+        });
+
+        function startEvaluation() {
+            processName = document.getElementById('process-name').value.trim();
+            if (!processName) {
+                alert("Por favor, describe el proceso que quieres evaluar.");
+                return;
+            }
+            document.getElementById('evaluated-process-name').textContent = processName;
+            document.getElementById('start-section').style.display = 'none';
+            document.getElementById('question-section').style.display = 'block';
+            document.getElementById('results-section').style.display = 'none'; // Ensure results are hidden
+            currentQuestionIndex = 0;
+            userScores = {};
+            updateProgressBar();
+            displayQuestion();
+        }
+        
+        function displayQuestion() {
+            if (currentQuestionIndex < questions.length) {
+                const question = questions[currentQuestionIndex];
+                document.getElementById('question-title').textContent = `Pregunta ${currentQuestionIndex + 1}/${questions.length}: ${question.title}`;
+                document.getElementById('question-text').textContent = question.text;
+                
+                const suggestionsContainer = document.getElementById('question-suggestions');
+                suggestionsContainer.innerHTML = "Sugerencias (puedes hacer clic o escribir tu propia respuesta): ";
+                question.suggestions.forEach(suggestion => {
+                    const span = document.createElement('span');
+                    span.textContent = suggestion;
+                    span.onclick = () => {
+                        document.getElementById('user-answer').value = suggestion;
+                    };
+                    suggestionsContainer.appendChild(span);
+                });
+
+                document.getElementById('user-answer').value = "";
+                document.getElementById('current-score-justification').textContent = "";
+            } else {
+                showResults();
+            }
+        }
+
+        function nextQuestion() {
+            const userAnswer = document.getElementById('user-answer').value.trim();
+            if (!userAnswer) {
+                alert("Por favor, responde la pregunta.");
+                return;
+            }
+            const question = questions[currentQuestionIndex];
+            const { score, justification } = question.scoringLogic(userAnswer);
+            userScores[question.id] = score;
+            
+            // Display score and justification immediately (optional, good for feedback)
+            document.getElementById('current-score-justification').innerHTML = `Puntaje para esta respuesta: ${score}/10. <em>${justification}</em>`;
+            
+            // Wait a bit before moving to the next question so user can see feedback
+            setTimeout(() => {
+                currentQuestionIndex++;
+                updateProgressBar();
+                displayQuestion();
+            }, 1500); // 1.5 seconds delay
+        }
+        
+        function updateProgressBar() {
+            const progress = (currentQuestionIndex / questions.length) * 100;
+            const progressBar = document.getElementById('progressBar');
+            progressBar.style.width = progress + '%';
+            progressBar.textContent = Math.round(progress) + '%';
+        }
+
+        function showResults() {
+            document.getElementById('question-section').style.display = 'none';
+            document.getElementById('results-section').style.display = 'block';
+
+            let totalScore = 0;
+            for (const id in userScores) {
+                totalScore += userScores[id];
+            }
+            const maxPossibleScore = questions.length * 10;
+            const totalOpportunityIndex = Math.round((totalScore / maxPossibleScore) * 100);
+            document.getElementById('total-opportunity-index').textContent = totalOpportunityIndex;
+
+            // Calculate Sub-indices (simplified logic)
+            const subIndicesContainer = document.getElementById('sub-indices-container');
+            subIndicesContainer.innerHTML = ''; // Clear previous
+            
+            let subIndices = {};
+            subIndices['Automatización (RPA)'] = Math.round(((userScores.repetitividad || 0) + (userScores.dependencia_humana || 0) + (userScores.conectividad_tecnologica || 0)) / 30 * 100);
+            subIndices['IA Generativa / NLP'] = Math.round(((userScores.volume_datos || 0) * 0.5 + (userScores.interaccion_clientes || 0) + (userScores.trazabilidad_documentacion || 0) * 0.5) / 20 * 100); // Max 20 for these 3
+            subIndices['Análisis Predictivo / Insight'] = Math.round(((userScores.volume_datos || 0) + (userScores.impacto_proceso || 0) + (userScores.errores_comunes || 0)) / 30 * 100);
+            subIndices['Bots Conversacionales'] = Math.round((userScores.interaccion_clientes || 0) / 10 * 100);
+
+            for (const key in subIndices) {
+                let val = Math.min(100, Math.max(0, subIndices[key])); // Cap at 0-100
+                const div = document.createElement('div');
+                div.classList.add('sub-index');
+                div.innerHTML = `<strong>${key}:</strong> ${val}/100`;
+                subIndicesContainer.appendChild(div);
+            }
+
+
+            // Diagnosis
+            const diagnosisList = document.getElementById('diagnosis-list');
+            diagnosisList.innerHTML = ''; // Clear previous
+            if (userScores.repetitividad > 7) diagnosisList.innerHTML += `<li>El proceso tiene <strong>alta repetitividad</strong> (${userScores.repetitividad}/10), lo que lo hace un buen candidato para automatización.</li>`;
+            if (userScores.dependencia_humana > 7) diagnosisList.innerHTML += `<li>Existe una <strong>alta dependencia de intervención humana</strong> (${userScores.dependencia_humana}/10), sugiriendo potencial para liberar recursos.</li>`;
+            if (userScores.errores_comunes > 6) diagnosisList.innerHTML += `<li>Se reportan <strong>errores comunes con frecuencia</strong> (${userScores.errores_comunes}/10), donde la IA podría mejorar la calidad.</li>`;
+            if (userScores.tiempos_espera > 6) diagnosisList.innerHTML += `<li>Hay <strong>tiempos de espera o cuellos de botella</strong> (${userScores.tiempos_espera}/10) que podrían reducirse con IA/automatización.</li>`;
+            if (userScores.conectividad_tecnologica > 6) diagnosisList.innerHTML += `<li>El uso de herramientas digitales es bajo o fragmentado (${userScores.conectividad_tecnologica}/10), indicando oportunidad para digitalización y RPA.</li>`;
+            if (userScores.interaccion_clientes > 6) diagnosisList.innerHTML += `<li>El proceso implica <strong>alta interacción con clientes/usuarios</strong> (${userScores.interaccion_clientes}/10), abriendo puertas a chatbots o IA generativa para comunicaciones.</li>`;
+            if (diagnosisList.innerHTML === '') diagnosisList.innerHTML = '<li>El proceso parece relativamente optimizado o los factores evaluados no señalan una oportunidad de IA urgente.</li>';
+            
+            // Technology Suggestion
+            let techSuggestion = "Considera las siguientes tecnologías: ";
+            let suggestionsMade = [];
+            if (subIndices['Automatización (RPA)'] > 60) {
+                techSuggestion += "<strong>RPA (Robotic Process Automation)</strong> para tareas repetitivas, ";
+                suggestionsMade.push("RPA");
+            }
+            if (subIndices['IA Generativa / NLP'] > 50 && userScores.volume_datos > 5) {
+                 techSuggestion += "<strong>IA Generativa / NLP</strong> para análisis de texto, generación de documentos o respuestas, ";
+                 suggestionsMade.push("IA Generativa");
+            }
+             if (subIndices['IA Generativa / NLP'] > 50 && userScores.trazabilidad_documentacion > 5) {
+                 techSuggestion += "<strong>IA para mejorar la documentación y trazabilidad</strong> (ej: auto-generación de resúmenes, logs), ";
+                 suggestionsMade.push("IA Documentación");
+            }
+            if (subIndices['Análisis Predictivo / Insight'] > 50 && userScores.volume_datos > 6) {
+                techSuggestion += "<strong>Análisis Predictivo o Machine Learning</strong> para extraer insights de los datos y optimizar decisiones, ";
+                suggestionsMade.push("Análisis Predictivo");
+            }
+            if (subIndices['Bots Conversacionales'] > 60) {
+                techSuggestion += "<strong>Bots Conversacionales o Chatbots</strong> para gestionar interacciones con clientes/usuarios. ";
+                suggestionsMade.push("Bots");
+            }
+            if (suggestionsMade.length === 0) {
+                techSuggestion = "Basado en las respuestas, una mejora incremental o revisión de procesos manuales podría ser más efectiva antes de considerar IA compleja.";
+            } else {
+                techSuggestion = techSuggestion.slice(0, -2) + "."; // Remove last comma and space
+            }
+            document.getElementById('technology-suggestion').innerHTML = techSuggestion;
+
+            // Next Steps
+            const nextStepsList = document.getElementById('next-steps-list');
+            nextStepsList.innerHTML = ''; // Clear previous
+            nextStepsList.innerHTML += "<li><strong>Profundizar el análisis:</strong> Mapea el proceso en detalle (diagrama de flujo, responsables, tiempos por tarea).</li>";
+            if (suggestionsMade.includes("RPA") || totalOpportunityIndex > 60) {
+                nextStepsList.innerHTML += "<li><strong>Identificar tareas específicas:</strong> Define qué partes exactas del proceso se beneficiarían más de la automatización o IA.</li>";
+                nextStepsList.innerHTML += "<li><strong>Investigar herramientas:</strong> Explora plataformas low-code/no-code para RPA (ej: UiPath, Power Automate, n8n, Make) o herramientas de IA específicas según la necesidad.</li>";
+            }
+            nextStepsList.innerHTML += "<li><strong>Realizar una prueba de concepto (PoC):</strong> Comienza con un piloto pequeño y medible para validar el impacto y aprender.</li>";
+            nextStepsList.innerHTML += "<li><strong>Evaluar el ROI:</strong> Estima los costos de implementación versus los beneficios esperados (ahorro de tiempo, reducción de errores, mejora de satisfacción).</li>";
+        }
+
+        function restartEvaluation() {
+            document.getElementById('results-section').style.display = 'none';
+            document.getElementById('start-section').style.display = 'block';
+            document.getElementById('process-name').value = ""; // Clear process name input
+        }
+
+    </script>
+</body>
+</html>
